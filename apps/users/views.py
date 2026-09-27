@@ -1,4 +1,5 @@
 import os
+from collections import defaultdict
 
 
 from rest_framework.views import APIView
@@ -11,15 +12,14 @@ from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 
 from .models import Servico, Agendamento, BloqueioHorario
+from .disponibilidade import (
+    HORA_INICIO_EXPEDIENTE, HORA_FIM_EXPEDIENTE, INTERVALO_MINUTOS,
+    avaliar_slot,
+)
 from .serializers import (
     ServicoSerializer, AgendamentoSerializer,
     AgendamentoCreateSerializer, BloqueioHorarioSerializer,
 )
-
-HORA_INICIO_EXPEDIENTE = time(8, 0)
-HORA_FIM_EXPEDIENTE = time(19, 0)
-INTERVALO_MINUTOS = 30
-
 
 def minutos(t: time) -> int:
     return t.hour * 60 + t.minute
@@ -116,20 +116,18 @@ class HorariosDisponiveisView(APIView):
             except Servico.DoesNotExist:
                 return Response({'erro': 'Serviço adicional não encontrado.'}, status=404)
 
-        agendamentos_qs = Agendamento.objects.all()
-        bloqueios_dia = set(
-            BloqueioHorario.objects.filter(data=data).values_list('hora', flat=True)
-        )
+        agendamentos_dia = list(Agendamento.objects.filter(data=data).exclude(status='cancelado'))
+        bloqueios_dia = list(BloqueioHorario.objects.filter(data=data))
 
         slots = []
         for slot_t in TODOS_SLOTS:
-            disponivel = (
-                slot_disponivel(data, slot_t, duracao, agendamentos_qs)
-                and slot_t not in bloqueios_dia
+            disponivel, encaixe, _ = avaliar_slot(
+                data, slot_t, duracao, agendamentos_dia, bloqueios_dia
             )
             slots.append({
                 'hora': slot_t.strftime('%H:%M'),
                 'disponivel': disponivel,
+                'encaixe': encaixe,
             })
 
         return Response(slots)
@@ -174,7 +172,17 @@ class DiasDisponiveisView(APIView):
             ultimo_dia = date(ano, mes + 1, 1) - timedelta(days=1)
 
         hoje = date.today()
-        agendamentos_qs = Agendamento.objects.all()
+        agendamentos_por_dia = defaultdict(list)
+        for ag in Agendamento.objects.filter(
+            data__range=(primeiro_dia, ultimo_dia)
+        ).exclude(status='cancelado'):
+            agendamentos_por_dia[ag.data].append(ag)
+
+        bloqueios_por_dia = defaultdict(list)
+        for bloqueio in BloqueioHorario.objects.filter(
+            data__range=(primeiro_dia, ultimo_dia)
+        ):
+            bloqueios_por_dia[bloqueio.data].append(bloqueio)
 
         resultado = []
         dia_atual = primeiro_dia
@@ -182,12 +190,11 @@ class DiasDisponiveisView(APIView):
             if dia_atual < hoje or dia_atual.weekday() == 6:  # domingo fechado
                 resultado.append({'data': dia_atual.isoformat(), 'disponivel': False})
             else:
-                bloqueios_dia = set(
-                    BloqueioHorario.objects.filter(data=dia_atual).values_list('hora', flat=True)
-                )
                 tem_slot = any(
-                    slot_disponivel(dia_atual, t, duracao, agendamentos_qs)
-                    and t not in bloqueios_dia
+                    avaliar_slot(
+                        dia_atual, t, duracao,
+                        agendamentos_por_dia[dia_atual], bloqueios_por_dia[dia_atual]
+                    )[0]
                     for t in TODOS_SLOTS
                 )
                 resultado.append({'data': dia_atual.isoformat(), 'disponivel': tem_slot})

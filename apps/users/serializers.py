@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from datetime import datetime, timedelta, time
 from .models import Servico, Agendamento, BloqueioHorario
+from .disponibilidade import HORA_FIM_EXPEDIENTE, avaliar_slot
 
 
 def minutos(t: time) -> int:
@@ -9,9 +10,6 @@ def minutos(t: time) -> int:
 
 def time_from_min(m: int) -> time:
     return time(m // 60, m % 60)
-
-
-HORA_FIM_EXPEDIENTE = time(19, 0)
 
 
 class ServicoSerializer(serializers.ModelSerializer):
@@ -81,27 +79,24 @@ class AgendamentoCreateSerializer(serializers.ModelSerializer):
 
         data['hora_fim'] = time_from_min(fim_min)
 
-        # Verifica conflito de horários
-        conflito = Agendamento.objects.filter(
-            data=data_ag,
-            hora_inicio__lt=data['hora_fim'],
-            hora_fim__gt=hora_inicio,
-        ).exclude(status='cancelado')
-
+        # Usa a mesma regra de encaixe da consulta pública de horários.
+        agendamentos = Agendamento.objects.filter(data=data_ag).exclude(status='cancelado')
         if self.instance:
-            conflito = conflito.exclude(pk=self.instance.pk)
-
-        if conflito.exists():
-            raise serializers.ValidationError(
-                {'hora_inicio': 'Este horário já está reservado. Escolha outro horário.'}
-            )
-
-        # Verifica se o horário está bloqueado
-        from .models import BloqueioHorario
-        if BloqueioHorario.objects.filter(data=data_ag, hora=hora_inicio).exists():
-            raise serializers.ValidationError(
-                {'hora_inicio': 'Este horário está bloqueado pelo estabelecimento.'}
-            )
+            agendamentos = agendamentos.exclude(pk=self.instance.pk)
+        bloqueios = BloqueioHorario.objects.filter(data=data_ag)
+        disponivel, _, motivo = avaliar_slot(
+            data_ag, hora_inicio, duracao, list(agendamentos), list(bloqueios)
+        )
+        if not disponivel:
+            if motivo == 'bloqueio':
+                mensagem = 'Este horário está bloqueado pelo estabelecimento.'
+            elif motivo == 'expediente':
+                mensagem = 'O serviço ultrapassa o horário de funcionamento (até 19:00).'
+            elif motivo == 'fechado':
+                mensagem = 'O estabelecimento não atende aos domingos.'
+            else:
+                mensagem = 'Este horário já está reservado. Escolha outro horário.'
+            raise serializers.ValidationError({'hora_inicio': mensagem})
 
         return data
 
