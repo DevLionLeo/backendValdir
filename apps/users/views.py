@@ -4,13 +4,16 @@ from rest_framework import status
 from rest_framework.permissions import IsAdminUser, AllowAny
 from datetime import date, datetime, timedelta, time
 
+from django.contrib.auth import authenticate
+from rest_framework.authtoken.models import Token
+
 from .models import Servico, Agendamento, BloqueioHorario
 from .serializers import (
     ServicoSerializer, AgendamentoSerializer,
     AgendamentoCreateSerializer, BloqueioHorarioSerializer,
 )
 
-HORA_INICIO_EXPEDIENTE = time(9, 0)
+HORA_INICIO_EXPEDIENTE = time(8, 0)
 HORA_FIM_EXPEDIENTE = time(19, 0)
 INTERVALO_MINUTOS = 30
 
@@ -206,6 +209,7 @@ class AgendamentoCreateView(APIView):
 
 class AgendamentosAdminView(APIView):
     """Lista todos os agendamentos (admin)."""
+    permission_classes = [IsAdminUser]
 
     def get(self, request):
         data_str = request.query_params.get('data')
@@ -231,6 +235,7 @@ class AgendamentosAdminView(APIView):
 
 class BloqueioHorarioView(APIView):
     """Gerencia bloqueios de horários (admin)."""
+    permission_classes = [IsAdminUser]
 
     def get(self, request):
         data_str = request.query_params.get('data')
@@ -263,6 +268,7 @@ class SlotsEncaixeView(APIView):
 
     Query params: agendamento_id
     """
+    permission_classes = [IsAdminUser]
 
     def get(self, request):
         ag_id = request.query_params.get('agendamento_id')
@@ -285,7 +291,7 @@ class SlotsEncaixeView(APIView):
         fim_ag = minutos(ag.hora_fim)
         while cur + 30 <= fim_ag:
             t = time_from_min(cur)
-            if slot_disponivel(ag.data, t, 30, agendamentos_qs) and t not in bloqueios_dia:
+            if slot_disponivel(ag.data, t, 30, agendamentos_qs, excluir_id=ag.id,) and t not in bloqueios_dia:
                 slots_livres.append(t.strftime('%H:%M'))
             cur += INTERVALO_MINUTOS
 
@@ -337,4 +343,38 @@ class AgendamentosClienteView(APIView):
             'ativos': AgendamentoSerializer(ativos, many=True).data,
             'historico': AgendamentoSerializer(historico, many=True).data,
         })
+
+
+class AdminLoginView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        username = request.data.get("username", "").strip()
+        password = request.data.get("password", "")
+
+        if not username or not password:
+            return Response(
+                {"erro": "Usuário e senha são obrigatórios."},
+                status=400,
+            )
+
+        user = authenticate(
+            request=request,
+            username=username,
+            password=password,
+        )
+
+        if not user or not user.is_staff:
+            return Response(
+                {"erro": "Credenciais inválidas."},
+                status=401,
+            )
+
+        token, _ = Token.objects.get_or_create(user=user)
+
+        return Response({
+            "token": token.key,
+            "usuario": user.get_username(),
+        })    
    

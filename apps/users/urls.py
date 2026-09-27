@@ -10,9 +10,34 @@ urlpatterns = [
     path('agendamentos/cliente/', views.AgendamentosClienteView.as_view(), name='agendamentos-cliente'),
 
     # ── Admin ─────────────────────────────────────────────────────────────────
-    path('admin/agendamentos/', views.AgendamentosAdminView.as_view(), name='admin-agendamentos'),
-    path('admin/agendamentos/<int:pk>/', views.AgendamentosAdminView.as_view(), name='admin-agendamento-detail'),
-    path('admin/bloqueios/', views.BloqueioHorarioView.as_view(), name='admin-bloqueios'),
-    path('admin/bloqueios/<int:pk>/', views.BloqueioHorarioView.as_view(), name='admin-bloqueio-detail'),
-    path('admin/slots-encaixe/', views.SlotsEncaixeView.as_view(), name='admin-slots-encaixe'),
+    path(
+        'admin/login/',
+        views.AdminLoginView.as_view(),
+        name='admin-login',
+    ),
+    path(
+        'admin/agendamentos/',
+        views.AgendamentosAdminView.as_view(),
+        name='admin-agendamentos',
+    ),
+    path(
+        'admin/agendamentos/<int:pk>/',
+        views.AgendamentosAdminView.as_view(),
+        name='admin-agendamento-detail',
+    ),
+    path(
+        'admin/bloqueios/',
+        views.BloqueioHorarioView.as_view(),
+        name='admin-bloqueios',
+    ),
+    path(
+        'admin/bloqueios/<int:pk>/',
+        views.BloqueioHorarioView.as_view(),
+        name='admin-bloqueio-detail',
+    ),
+    path(
+        'admin/slots-encaixe/',
+        views.SlotsEncaixeView.as_view(),
+        name='admin-slots-encaixe',
+    ),
 ]
