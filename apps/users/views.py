@@ -1,3 +1,7 @@
+import os
+
+from urllib3 import request
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -350,12 +354,18 @@ class AdminLoginView(APIView):
     authentication_classes = []
 
     def post(self, request):
-        username = request.data.get("username", "").strip()
+        username = os.getenv("ADMIN_LOGIN_USERNAME", "").strip()
         password = request.data.get("password", "")
 
-        if not username or not password:
+        if not username:
             return Response(
-                {"erro": "Usuário e senha são obrigatórios."},
+                {"erro": "Login administrativo não configurado."},
+                status=503,
+            )
+
+        if not password:
+            return Response(
+                {"erro": "Senha é obrigatória."},
                 status=400,
             )
 
