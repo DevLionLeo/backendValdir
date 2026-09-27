@@ -95,7 +95,7 @@ DATABASES = {
         'NAME': os.environ.get('DB_NAME', 'leon1619_valdir_servicos'),
         'USER': os.environ.get('DB_USER', 'leon1619_valdircavalcante'),
         'PASSWORD': os.environ.get('DB_PASSWORD', 'valdir_sistema123'),
-        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'HOST': os.environ.get('DB_HOST', '50.116.112.182'),
         'PORT': os.environ.get('DB_PORT', '3306'),
     }
 }
