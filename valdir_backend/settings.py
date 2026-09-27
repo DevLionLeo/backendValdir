@@ -27,7 +27,11 @@ SECRET_KEY = "django-insecure-2a5d89c4%59=w826268$t(&1ey53ts7qdzm)ob=f9x7b-ad0a@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    'backendvaldir.onrender.com',
+    'salaovaldircavalcante.com.br/',
+    'www.salaovaldircavalcante.com.br/',
+]
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
