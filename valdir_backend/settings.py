@@ -92,11 +92,11 @@ WSGI_APPLICATION = "valdir_backend.wsgi.application"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'leon1619_valdir_servicos',
-        'USER': 'leon1619_valdircavalcante',
-        'PASSWORD': 'valdir_sistema123',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'NAME': os.environ.get('DB_NAME', 'leon1619_valdir_servicos'),
+        'USER': os.environ.get('DB_USER', 'leon1619_valdircavalcante'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'valdir_sistema123'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '3306'),
     }
 }
 
