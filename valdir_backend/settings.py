@@ -31,15 +31,16 @@ DEBUG = False
 is_staff=True
 
 ALLOWED_HOSTS = [
-    'backendvaldir.onrender.com',
-    'salaovaldircavalcante.com.br',
-    'www.salaovaldircavalcante.com.br',
+    "localhost",
+    "127.0.0.1",
+    "backendvaldir.onrender.com",
+    "salaovaldircavalcante.com.br",
+    "www.salaovaldircavalcante.com.br",
 ]
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Application definition
-
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -68,6 +69,8 @@ MIDDLEWARE = [
 CORS_ALLOW_ALL_ORIGINS = False
 
 CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
     "https://salaovaldircavalcante.com.br",
     "https://www.salaovaldircavalcante.com.br"
 ]
